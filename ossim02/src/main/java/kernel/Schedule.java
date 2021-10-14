@@ -68,6 +68,7 @@ public class Schedule extends Thread {
      */
     private synchronized void staticPriority() {
         Collections.sort(readyQueue);
+        System.out.print(readyQueue);
     }
 
 
@@ -82,9 +83,7 @@ public class Schedule extends Thread {
             } else {                                  //时间片到，将此进程移到就绪队列排队，进行进程上下文切换，再从就绪队列取出优先级最高的进程执行
                 this.cpu.currentProcess.pcb.setPSW(2);
                 this.cpu.currentProcess.setRqTimes(Clock.getCurrentTime());
-                schedule.joinReadyQueue(this.cpu.currentProcess);                                 //当前进程进入就绪队列
-                schedule.staticPriority();  //按优先级大小对就绪队列进行重新排队
-
+                schedule.joinReadyQueue(this.cpu.currentProcess);//当前进程进入就绪队列,按优先级大小对就绪队列进行重新排队
                 Process readyProcess = this.leaveReadyQueue();
                 if (readyProcess == null) {                     //如果就绪队列空，打印this.cpu空闲状态
                     manager.getDashboard().consoleWriteln("\n===当前CPU空闲，并保持空闲状态===\n");

@@ -67,7 +67,8 @@ public class Process implements Comparable<Process> {
         ret.pcb.setPC(0);
         ret.pcb.setIR(0);
 
-        schedule.readyQueue.offer(ret);
+//        schedule.readyQueue.offer(ret);
+        schedule.joinReadyQueue(ret);
         schedule.processList.add(ret);
         schedule.processCount++;
         //进程创建信息

@@ -24,7 +24,8 @@ public class Manager {
 
     /// 配置
     // 项目根地址
-    public static final String rootPath = "F:\\新建文件夹\\ossim02\\";
+//    public static final String rootPath = "F:\\新建文件夹\\ossim02\\";
+    public static final String rootPath = "D:\\my\\work\\eclipseWork\\ossim\\ossim02\\";
     public static final String inputFilePath = rootPath + "11519101-jobs-input.txt";
     public static final String outputFilePath = rootPath + "ProcessResult.txt";
     // components

@@ -132,11 +132,14 @@ public class JobManager {
             int currentTime = Clock.getCurrentTime();
             int jobInTime = sourcePCB[2];
             if (jobInTime == currentTime) {// 根据时间判断，当前是否创建作业
+            	long A=System.currentTimeMillis();
                 String id = Integer.toString(sourcePCB[0]);
                 String jobFile = Manager.rootPath + id + ".txt";    //根据进程id，去读这个进程对应的指令的文件
                 ArrayList<int[]> sourceInsList = readInstructions(jobFile);
                 // create a job
                 createJob(sourcePCB, sourceInsList);
+                long B=System.currentTimeMillis();
+                System.out.println("运行时间： "+(B-A)+"ms");
             }
         }
     }

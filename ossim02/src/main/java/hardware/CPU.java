@@ -42,7 +42,6 @@ public class CPU {
         currentProcess.plusProcessRunTimes();
         currentProcess.useTimeSlice();
         // 更新指令和寄存器相关
-        //TODO 先后顺序
         currentProcess.setIRNewInstruction();
         setIR(currentProcess.pcb.getIR());
         switch (IR) {
@@ -54,16 +53,14 @@ public class CPU {
             }
             case 1: //检查键盘
             {
-                switchUserModeToKernelMode();
-                boolean processIsInKeyBoard = KeyboardDevice.getUsingProcess().pcb.getProID()!=currentProcess.pcb.getProID();
+                switchUserModeToKernelMode(); 
                 if (KeyboardDevice.getKeyBoardState())
-                	if (!processIsInKeyBoard) {
-                		currentProcess.block();
-					}
+                	currentProcess.block();
                 else
                     KeyboardDevice.setKeyBoardWorkForAProcess(currentProcess);
                 switchKernelModeToUserMode();
                 setWorking(false);
+                break;
             }
             case 2:// 检查PV控制
             {
@@ -72,6 +69,7 @@ public class CPU {
                 else
                     PV.setPVWork(currentProcess);
                 setWorking(false);
+                break;
             }
             case 3:// 检查显示器
             {
@@ -82,14 +80,15 @@ public class CPU {
                     DisplayDevice.setDisplayWork(currentProcess);
                 switchKernelModeToUserMode();
                 setWorking(false);
+                break;
             }
+        }
             // 显示指令执行状态
 //            manager.getDashboard().consoleWriteln("CPU状态：用户态，正在执行进程" + this.currentProcess.pcb.getProID() + "的" + this.currentProcess.getCurrentInstructionID() + "号指令，类型为" + this.getIR() + "\n");
             // 显示就绪队列状态
             Schedule.displayQueueStatus(Schedule.readyQueue, 0);
         }
 
-    }
 
 
     //// interrupt implement
@@ -157,7 +156,7 @@ public class CPU {
         isWorking = working;
     }
 
-    public boolean isCloseInterruptFlag() {
+    public static boolean isCloseInterruptFlag() {
         return closeInterruptFlag;
     }
 

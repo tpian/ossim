@@ -68,8 +68,8 @@ public class Schedule extends Thread {
         this.staticPriority();  //按优先级大小对就绪队列进行重新排队
         if (CPU.isWorking()) {//cpu工作
             if (CPU.currentProcess.isTimeSliceLeft()) {   //如果正在运行的进程时间片还有剩余，那么一个时钟中断周期内此进程继续运行
-            	Manager.getDashboard().consoleWriteln("\n当前CPU工作\n");
             	CPU.execute();             //根据不同的指令执行对应的操作
+            	Manager.getDashboard().consoleWriteln("\n当前CPU工作：进程"+CPU.currentProcess.pcb.getProID()+",指令"+CPU.currentProcess.pcb.getPC()+"\n");
             } else {                                  //时间片到，将此进程移到就绪队列排队，进行进程上下文切换，再从就绪队列取出优先级最高的进程执行
                 CPU.currentProcess.pcb.setPSW(2);
                 CPU.currentProcess.setRqTimes(Clock.getCurrentTime());
@@ -93,7 +93,7 @@ public class Schedule extends Thread {
             } else {                                 //就绪队列不空，进行进程上下文切换，再从就绪队列取出优先级最高的进程执行
             	CPU.processContextSwitch(readyProcess);
             	CPU.setWorking(true);       //检测到了还有指令没做完，this.cpu状态设为work
-                Manager.getDashboard().consoleWriteln("\n当前CPU工作\n");
+                Manager.getDashboard().consoleWriteln("\n当前CPU工作：进程"+CPU.currentProcess.pcb.getProID()+",指令"+CPU.currentProcess.pcb.getPC()+"\n");
                 CPU.currentProcess.resetTimeSlice();
                 CPU.execute();            //根据不同的指令执行对应的操作
             }

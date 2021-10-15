@@ -1,5 +1,6 @@
 package kernel;
 
+import hardware.CPU;
 import hardware.Clock;
 import os.Manager;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -14,8 +15,6 @@ import java.util.Stack;
  * 但是操作原语应当是存在于Process类当中
  */
 public class Process implements Comparable<Process> {
-    private static final Schedule schedule = Schedule.getInstance();// 调度器部分
-    private static final Manager manager = Manager.getInstance();// 资源管理器部分
     // 进程的组成部分
     public PCB pcb;//控制数据部分
     public List<Instruction> instructionList;// 指令段部分
@@ -50,12 +49,13 @@ public class Process implements Comparable<Process> {
     public synchronized static Process createProcess(PCB pcb, List<Instruction> instructionList) {
         //pcb
         Process ret = new Process(pcb, instructionList);
+        ret.pcb.setInTimes(Clock.getCurrentTime());
         ret.pcb.setRunTimes(0);
         ret.pcb.setTurnTimes(0);
         ret.pcb.setPSW(2);
         // sch
         ret.setTimeSliceLeft(0);
-        ret.setRqNum(schedule.readyQueue.size());
+        ret.setRqNum(Schedule.readyQueue.size());
         ret.setRqTimes(Clock.getCurrentTime());
 
         ret.setBqNum1(-1);
@@ -68,14 +68,14 @@ public class Process implements Comparable<Process> {
         ret.pcb.setIR(0);
 
 //        schedule.readyQueue.offer(ret);
-        schedule.joinReadyQueue(ret);
-        schedule.processList.add(ret);
-        schedule.processCount++;
+        Schedule.joinReadyQueue(ret);
+        Schedule.processList.add(ret);
+        Schedule.processCount++;
         //进程创建信息
         String createMsg = "进程" + ret.pcb.getProID() + "已创建，详细信息如下：\n";
         createMsg += ret.pcb.toString();
         createMsg += ret.getInstructionListDetail();
-        manager.getDashboard().consoleWriteln(createMsg);
+        Manager.getDashboard().consoleWriteln(createMsg);
         return ret;
     }
 
@@ -83,10 +83,10 @@ public class Process implements Comparable<Process> {
     public synchronized void cancel() {
         this.pcb.setPSW(0);
         this.pcb.setTurnTimes(Clock.getCurrentTime() - this.pcb.getInTimes() + 1);
-        schedule.processList.remove(this);
-        schedule.processCount--;
-        schedule.readyQueue.remove(this);
-        manager.getDashboard().consoleWriteln("进程" + this.pcb.getProID() + "被撤销，执行了" + this.pcb.getInstructNum() + "条指令。\n" +
+        Schedule.processList.remove(this);
+        Schedule.processCount--;
+        Schedule.readyQueue.remove(this);
+        Manager.getDashboard().consoleWriteln("进程" + this.pcb.getProID() + "被撤销，执行了" + this.pcb.getInstructNum() + "条指令。\n" +
                 "进入时间为" + this.pcb.getInTimes() + "，运行时间为" + this.pcb.getRunTimes() + "，撤销时间为：" + Clock.getCurrentTime() + "，周转时间为:" + this.pcb.getTurnTimes() + "\n");
     }
 
@@ -98,13 +98,13 @@ public class Process implements Comparable<Process> {
             case 0:
                 break;
             case 1:
-                schedule.joinBlockedQueue1(this);
+                Schedule.joinBlockedQueue1(this);
                 break;
             case 2:
-                schedule.joinBlockedQueue2(this);
+                Schedule.joinBlockedQueue2(this);
                 break;
             case 3:
-                schedule.joinBlockedQueue3(this);
+                Schedule.joinBlockedQueue3(this);
                 break;
             default:
                 throw new NotImplementedException();
@@ -113,23 +113,24 @@ public class Process implements Comparable<Process> {
 
     // 进程唤醒原语
     public synchronized void wakeup() {
-        this.pcb.setPSW(2);
-        schedule.joinReadyQueue(this);
+        this.pcb.setPSW(2);        
         switch (this.pcb.getIR()) {
-            case 0:
-                break;
-            case 1:
-                this.setBqNum1(-1);
-                break;
-            case 2:
-                this.setBqNum2(-1);
-                break;
-            case 3:
-                this.setBqNum3(-1);
-                break;
-            default:
-                throw new NotImplementedException();
-        }
+	        case 0:
+	            break;
+	        case 1:
+	            this.setBqNum1(-1);
+	            break;
+	        case 2:
+	            this.setBqNum2(-1);
+	            break;
+	        case 3:
+	            this.setBqNum3(-1);
+	            break;
+	        default:
+	            throw new NotImplementedException();
+    }     
+        Schedule.joinReadyQueue(this);
+
     }
 
     /**
@@ -226,7 +227,7 @@ public class Process implements Comparable<Process> {
         else {
             this.cancel();
             //一个进程结束被撤销，短时间内CPU可以视作不工作
-            manager.getCpu().setWorking(false);
+            CPU.setWorking(false);
         }
     }
 

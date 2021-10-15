@@ -12,10 +12,6 @@ import java.util.TimerTask;
  */
 public class Clock extends Thread {
     /**
-     * 系统管理器，用以获取系统资源
-     */
-    private static final Manager manager = Manager.getInstance();
-    /**
      * 系统时间间隔，单位 ms
      */
     private static final int INTERVAL = 1000;
@@ -72,19 +68,19 @@ public class Clock extends Thread {
                 }
                 continue;
             }
-            manager.getGlobalLock().lock();//请求
+            Manager.getGlobalLock().lock();//请求
             try {
-                manager.getDashboard().consoleBar();
-                manager.getDashboard().consoleWriteln("\n系统时间：" + Clock.getCurrentTime() + "\n");
-                manager.getTimerCondition().signalAll();
+            	Manager.getDashboard().consoleBar();
+            	Manager.getDashboard().consoleWriteln("\n系统时间：" + Clock.getCurrentTime() + "\n");
+            	Manager.getTimerCondition().signalAll();
 
             } finally {
-                manager.getGlobalLock().unlock();//释放
+            	Manager.getGlobalLock().unlock();//释放
             }
             // 未暂停，正常工作
             try {
                 Thread.sleep(Clock.INTERVAL);
-                manager.getDashboard().consoleScroll();
+                Manager.getDashboard().consoleScroll();
                 Clock.currentTime++;
             } catch (InterruptedException exception) {
                 exception.printStackTrace();

@@ -5,7 +5,6 @@ import kernel.Schedule;
 import os.Manager;
 
 public class DisplayDevice extends Thread {
-    private static final Manager manager = Manager.getInstance();
 
     private static boolean ifDisplayWork = false; //表示键盘输入线程状态，false为空闲，true为忙碌
     private static Process usingProcess = null;
@@ -13,14 +12,14 @@ public class DisplayDevice extends Thread {
 
     public void run() {
         while (true) {
-            manager.getGlobalLock().lock();//请求锁
+        	Manager.getGlobalLock().lock();//请求锁
             try {
-                manager.getTimerCondition().await();
+            	Manager.getTimerCondition().await();
                 doWhatDisplayDoEverySecond();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
-                manager.getGlobalLock().unlock();//释放锁
+            	Manager.getGlobalLock().unlock();//释放锁
             }
         }
     }
@@ -33,17 +32,17 @@ public class DisplayDevice extends Thread {
         if (ifDisplayWork && Clock.getCurrentTime() - lastUseTime == 4) {
             usingProcess.wakeup();   //系统调用结束，唤醒此进程
             usingProcess.interruptCPUPlusPCAndCheckCancel();   //此进程的pc指向下一条
-            usingProcess = manager.getSchedule().leaveBlockedQueue2();  //调入阻塞队列其他进程，如果有返回队头，如果没有返回空地址
+            usingProcess = Schedule.leaveBlockedQueue2();  //调入阻塞队列其他进程，如果有返回队头，如果没有返回空地址
             if (usingProcess != null)
                 lastUseTime = Clock.getCurrentTime() - 1;
             else
                 ifDisplayWork = false;
         }
         if (!ifDisplayWork) {
-            manager.getDashboard().consoleWriteln("显示器状态： 无进程请求" + "\n");
+        	Manager.getDashboard().consoleWriteln("显示器状态： 无进程请求" + "\n");
         } else {
-            manager.getDashboard().consoleWriteln("显示器状态：进程" + usingProcess.pcb.getProID() + "正在请求\n");
-            Schedule.displayQueueStatus(manager.getSchedule().blockQueue02, 2);
+        	Manager.getDashboard().consoleWriteln("显示器状态：进程" + usingProcess.pcb.getProID() + "正在请求\n");
+            Schedule.displayQueueStatus(Schedule.blockQueue02, 2);
         }
     }
 

@@ -8,10 +8,6 @@ import os.Manager;
 import java.util.*;
 
 public class Schedule extends Thread {
-    // 单例
-    private static Schedule schedule;
-    private static final Manager manager = Manager.getInstance();// 资源管理器部分
-    private final CPU cpu = CPU.getInstance();
 
     public static LinkedList<Process> readyQueue = new LinkedList<>();   //就绪队列  使用静态变量，所有Process共享四个队列
     public static LinkedList<Process> blockQueue01 = new LinkedList<>();    //阻塞队列1  java中 list实现了Queue接口，可以当队列使用
@@ -22,33 +18,25 @@ public class Schedule extends Thread {
     private static final String[] queueTypeNameMap = new String[]{"就绪队列", "阻塞队列1", "阻塞队列2", "阻塞队列3"};
 
 
-    private Schedule() {
-    }
-
-    // 单例化
-    public static synchronized Schedule getInstance() {
-        if (schedule == null) {
-            return new Schedule();
-        }
-        return schedule;
-    }
 
 
     @Override
     public void run() {
         //! 调度主循环；程序核心
         while (true) {
-            manager.getGlobalLock().lock();//请求锁
+        	Manager.getGlobalLock().lock();//请求锁
             try {
-                manager.getTimerCondition().await();  //唤醒所有等待线程
-                // 检查新作业的到来
-                checkNewJobs();
+            	Manager.getTimerCondition().await();  //唤醒所有等待线程
+                if((Clock.getCurrentTime()%5 == 0)&&(Clock.getCurrentTime()!=0)) {
+                	//每5秒检查是否有新作业
+                	checkNewJobs();
+                }
                 //执行时间片轮转算法
                 roundSchedule();
             } catch (InterruptedException exception) {
                 exception.printStackTrace();
             } finally {
-                manager.getGlobalLock().unlock();//释放锁
+            	Manager.getGlobalLock().unlock();//释放锁
             }
 
         }
@@ -58,15 +46,16 @@ public class Schedule extends Thread {
     //// 调度算法实现
     // 检查新作业的到来
     private synchronized void checkNewJobs() {
-        manager.getDashboard().consoleWriteln("检查是否有作业到来");
-        JobManager.loadJobsAndIns();
+    	Manager.getDashboard().consoleWriteln("检查是否有作业到来");
+        System.out.println(Clock.getCurrentTime());
+        JobManager.loadJobsAndIns(Clock.getCurrentTime());
     }
 
     /**
      * 静态优先级算法
      * 将就绪队列中的PCB按照优先级排序
      */
-    private synchronized void staticPriority() {
+    private synchronized static void staticPriority() {
         Collections.sort(readyQueue);
         System.out.print(readyQueue);
     }
@@ -77,20 +66,21 @@ public class Schedule extends Thread {
      */
     private void roundSchedule() {
         this.staticPriority();  //按优先级大小对就绪队列进行重新排队
-        if (this.cpu.isWorking()) {//cpu工作
-            if (this.cpu.currentProcess.isTimeSliceLeft()) {   //如果正在运行的进程时间片还有剩余，那么一个时钟中断周期内此进程继续运行
-                this.cpu.execute();             //根据不同的指令执行对应的操作
+        if (CPU.isWorking()) {//cpu工作
+            if (CPU.currentProcess.isTimeSliceLeft()) {   //如果正在运行的进程时间片还有剩余，那么一个时钟中断周期内此进程继续运行
+            	Manager.getDashboard().consoleWriteln("\n当前CPU工作\n");
+            	CPU.execute();             //根据不同的指令执行对应的操作
             } else {                                  //时间片到，将此进程移到就绪队列排队，进行进程上下文切换，再从就绪队列取出优先级最高的进程执行
-                this.cpu.currentProcess.pcb.setPSW(2);
-                this.cpu.currentProcess.setRqTimes(Clock.getCurrentTime());
-                schedule.joinReadyQueue(this.cpu.currentProcess);//当前进程进入就绪队列,按优先级大小对就绪队列进行重新排队
+                CPU.currentProcess.pcb.setPSW(2);
+                CPU.currentProcess.setRqTimes(Clock.getCurrentTime());
+                Schedule.joinReadyQueue(CPU.currentProcess);//当前进程进入就绪队列,按优先级大小对就绪队列进行重新排队
                 Process readyProcess = this.leaveReadyQueue();
                 if (readyProcess == null) {                     //如果就绪队列空，打印this.cpu空闲状态
-                    manager.getDashboard().consoleWriteln("\n===当前CPU空闲，并保持空闲状态===\n");
+                    Manager.getDashboard().consoleWriteln("\n===当前CPU空闲，并保持空闲状态===\n");
                 } else {
-                    this.cpu.processContextSwitch(readyProcess);   //进行进程上下文切换
-                    this.cpu.currentProcess.resetTimeSlice();
-                    this.cpu.execute();            //根据不同的指令执行对应的操作
+                	CPU.processContextSwitch(readyProcess);   //进行进程上下文切换
+                	CPU.currentProcess.resetTimeSlice();
+                	CPU.execute();            //根据不同的指令执行对应的操作
                 }
             }
         } else {
@@ -99,13 +89,13 @@ public class Schedule extends Thread {
             // 如果就绪队列为空会返回一个空地址
             Process readyProcess = this.leaveReadyQueue();
             if (readyProcess == null) {                     //如果就绪队列空，打印this.cpu空闲状态
-                manager.getDashboard().consoleWriteln("\n===当前CPU空闲，并保持空闲状态===\n");
+            	Manager.getDashboard().consoleWriteln("\n===当前CPU空闲，并保持空闲状态===\n");
             } else {                                 //就绪队列不空，进行进程上下文切换，再从就绪队列取出优先级最高的进程执行
-                this.cpu.processContextSwitch(readyProcess);
-                this.cpu.setWorking(true);       //检测到了还有指令没做完，this.cpu状态设为work
-                manager.getDashboard().consoleWriteln("\n当前CPU工作\n");
-                this.cpu.currentProcess.resetTimeSlice();
-                this.cpu.execute();            //根据不同的指令执行对应的操作
+            	CPU.processContextSwitch(readyProcess);
+            	CPU.setWorking(true);       //检测到了还有指令没做完，this.cpu状态设为work
+                Manager.getDashboard().consoleWriteln("\n当前CPU工作\n");
+                CPU.currentProcess.resetTimeSlice();
+                CPU.execute();            //根据不同的指令执行对应的操作
             }
         }
     }
@@ -115,7 +105,7 @@ public class Schedule extends Thread {
     /**
      * @Description: 进程加入阻塞队列1
      */
-    public void joinBlockedQueue1(Process process) {
+    public static void joinBlockedQueue1(Process process) {
         blockQueue01.offer(process);
         process.setBqNum1(blockQueue01.indexOf(process));
         process.setBqTimes1(Clock.getCurrentTime());
@@ -124,7 +114,7 @@ public class Schedule extends Thread {
     /**
      * @Description: 进程加入阻塞队列2
      */
-    public void joinBlockedQueue2(Process process) {
+    public static void joinBlockedQueue2(Process process) {
         blockQueue02.offer(process);
         process.setBqNum2(blockQueue02.indexOf(process));
         process.setBqTimes2(Clock.getCurrentTime());
@@ -133,7 +123,7 @@ public class Schedule extends Thread {
     /**
      * @Description: 进程加入阻塞队列3
      */
-    public void joinBlockedQueue3(Process process) {
+    public static void joinBlockedQueue3(Process process) {
         blockQueue03.offer(process);
         process.setBqNum3(blockQueue03.indexOf(process));
         process.setBqTimes3(Clock.getCurrentTime());
@@ -142,14 +132,14 @@ public class Schedule extends Thread {
     /**
      * @Description: 进程加入就绪队列
      */
-    public void joinReadyQueue(Process process) {
+    public static void joinReadyQueue(Process process) {
         readyQueue.offer(process);
         process.setRqNum(readyQueue.indexOf(process));
         process.setRqTimes(Clock.getCurrentTime());
-        this.staticPriority();  //按优先级大小对就绪队列进行重新排队
+        staticPriority();  //按优先级大小对就绪队列进行重新排队
     }
 
-    public Process leaveBlockedQueue1() {
+    public static Process leaveBlockedQueue1() {
         Process process = blockQueue01.poll();
         for (Process p : blockQueue01) {
             p.setBqNum1(blockQueue01.indexOf(p));
@@ -157,7 +147,7 @@ public class Schedule extends Thread {
         return process;
     }
 
-    public Process leaveBlockedQueue2() {
+    public static Process leaveBlockedQueue2() {
         Process process = blockQueue02.poll();
         for (Process p : blockQueue02) {
             p.setBqNum2(blockQueue02.indexOf(p));
@@ -183,16 +173,16 @@ public class Schedule extends Thread {
 
     // 展示指定队列的状态
     public static void displayQueueStatus(LinkedList<Process> queue, int queueType) {
-        manager.getDashboard().consoleWriteln("当前" + queueTypeNameMap[queueType] + "存在" + queue.size() + "个进程。进程号分别是：\n");
+    	Manager.getDashboard().consoleWriteln("当前" + queueTypeNameMap[queueType] + "存在" + queue.size() + "个进程。进程号分别是：\n");
         for (Process e : queue) {
-            manager.getDashboard().consoleWriteln(e.pcb.getProID() + "\t");
+        	Manager.getDashboard().consoleWriteln(e.pcb.getProID() + "\t");
         }
-        manager.getDashboard().consoleWriteln("\n");
+        Manager.getDashboard().consoleWriteln("\n");
     }
 
     // 展示当前schedule的四条队列信息
-    public void displayAllQueue() {
-        manager.getDashboard().consoleWriteln("当前调度模块状态如下：");
+    public static void displayAllQueue() {
+    	Manager.getDashboard().consoleWriteln("当前调度模块状态如下：");
         displayQueueStatus(readyQueue, 0);
         displayQueueStatus(blockQueue01, 1);
         displayQueueStatus(blockQueue02, 2);

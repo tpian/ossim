@@ -11,7 +11,6 @@ import java.util.ArrayList;
  * 文件读写类；数据驱动；
  */
 public class JobManager {
-    private static final Manager manager = Manager.getInstance();
     //输入文件内容缓存
     private static final ArrayList<int[]> inputJobs = readJobsInputFile();
 
@@ -29,7 +28,7 @@ public class JobManager {
                 File dir = new File(file.getParent());
                 if (dir.mkdirs())
                     if (file.createNewFile())
-                        manager.getDashboard().consoleWriteln("保存成功");
+                    	Manager.getDashboard().consoleWriteln("保存成功");
             }
             FileOutputStream outStream = new FileOutputStream(file); //文件输出流将数据写入文件
             outStream.write(sourceByte);
@@ -52,11 +51,12 @@ public class JobManager {
     /**
      * 加载全部作业；
      * 一次性加载完成。
+     * @param nowTime 
      */
-    public static void loadJobsAndIns() {
-        JobManager.createJobs(JobManager.inputJobs);
-        manager.getDashboard().consoleWriteln("作业和指令加载完成");
-        manager.getSchedule().displayAllQueue();
+    public static void loadJobsAndIns(int nowTime) {
+        JobManager.createJobs(JobManager.inputJobs,nowTime);
+        Manager.getDashboard().consoleWriteln("作业和指令加载完成");
+        Schedule.displayAllQueue();
     }
 
     /**
@@ -64,7 +64,7 @@ public class JobManager {
      * 通过BufferedReader 流的形式进行流缓存，之后通过readLine方法获取到缓存的内容。
      */
     private static ArrayList<int[]> readJobsInputFile() {
-        manager.getDashboard().consoleWriteln("正在读取作业");
+    	Manager.getDashboard().consoleWriteln("正在读取作业");
         return inputPaste(Manager.inputFilePath);
     }
 
@@ -125,13 +125,14 @@ public class JobManager {
     /**
      * 每次创建一个新作业，并考虑到是单进程作业，于是一个作业就是一个进程；
      * 并对job根据intime字段进行过滤。
+     * @param currentTime 
      */
-    private static void createJobs(ArrayList<int[]> sourcePCBList) {
+    private static void createJobs(ArrayList<int[]> sourcePCBList, int currentTime) {
         // 过滤
+    	System.out.println(Clock.getCurrentTime());
         for (int[] sourcePCB : sourcePCBList) {
-            int currentTime = Clock.getCurrentTime();
             int jobInTime = sourcePCB[2];
-            if (jobInTime == currentTime) {// 根据时间判断，当前是否创建作业
+            if ((jobInTime <= currentTime)&&(jobInTime>(currentTime-5) ) ) {// 根据时间判断，当前是否创建作业
             	long A=System.currentTimeMillis();
                 String id = Integer.toString(sourcePCB[0]);
                 String jobFile = Manager.rootPath + id + ".txt";    //根据进程id，去读这个进程对应的指令的文件

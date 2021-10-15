@@ -9,18 +9,19 @@ import kernel.JobManager;
 import kernel.PV;
 import kernel.Schedule;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 // 全局资源管理器
 public class Manager {
     public static Manager manager = new Manager();
-    private Dashboard dashboard;
+    private static Dashboard dashboard;
     /// 同步
     // 递归锁，主要用于同步时钟线程和其他线程之间的通信
-    private static final ReentrantLock globalLock = new ReentrantLock();
+    private static ReentrantLock globalLock = new ReentrantLock();
     // 对应于锁的条件变量
-    private static final Condition timerCondition = globalLock.newCondition();
+    private static Condition timerCondition = globalLock.newCondition();
 
     /// 配置
     // 项目根地址
@@ -30,7 +31,7 @@ public class Manager {
     public static final String outputFilePath = rootPath + "ProcessResult.txt";
     // components
     Clock clock;
-    CPU cpu = CPU.getInstance();
+    
     KeyboardDevice keyboardDevice;
     DisplayDevice displayDevice;
     PV pv;
@@ -49,7 +50,7 @@ public class Manager {
         this.keyboardDevice = new KeyboardDevice();
         this.displayDevice = new DisplayDevice();
         this.pv = new PV();
-        this.schedule = Schedule.getInstance();
+        this.schedule = new Schedule();
     }
 
     public static Manager getInstance() {
@@ -80,7 +81,7 @@ public class Manager {
         this.getDashboard().consoleBar();
     }
 
-    public Dashboard getDashboard() {
+    public static Dashboard getDashboard() {
         return dashboard;
     }
 
@@ -88,15 +89,12 @@ public class Manager {
         return clock;
     }
 
-    public CPU getCpu() {
-        return cpu;
-    }
 
-    public ReentrantLock getGlobalLock() {
+    public static ReentrantLock getGlobalLock() {
         return globalLock;
     }
 
-    public Condition getTimerCondition() {
+    public static Condition getTimerCondition() {
         return timerCondition;
     }
 
